@@ -39,6 +39,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.perf4j.StopWatch;
+import org.perf4j.slf4j.Slf4JStopWatch;
+
 import ome.util.Utils;
 import ome.util.checksum.ChecksumProviderFactory;
 import ome.util.checksum.ChecksumProviderFactoryImpl;
@@ -219,7 +222,12 @@ public class client {
      */
     public client(Ice.InitializationData id) {
         insecure = false;
-        init(id);
+        StopWatch t1 = new Slf4JStopWatch("omero.client.init()");
+        try {
+            init(id);
+        } finally {
+            t1.stop();
+        }
     }
 
     /**
@@ -655,7 +663,12 @@ public class client {
     public ServiceFactoryPrx joinSession(String session)
             throws CannotCreateSessionException, PermissionDeniedException,
             ServerError {
-        return createSession(session, session);
+        StopWatch t0 = new Slf4JStopWatch("omero.client.joinSession()");
+        try {
+            return createSession(session, session);
+        } finally {
+            t0.stop();
+        }
     }
 
     /**
@@ -720,19 +733,33 @@ public class client {
                 Map<String, String> ctx = new HashMap<String, String>(getImplicitContext().getContext());
                 ctx.put(AGENT.value, __agent);
                 ctx.put(IP.value, __ip);
+                StopWatch t0 = new Slf4JStopWatch("omero.client.getRouter()");
                 Glacier2.RouterPrx rtr = getRouter(__ic);
+                t0.stop();
+                StopWatch t1 = new Slf4JStopWatch(
+                        "Glacier2.RouterPrx.createSession()");
                 prx = rtr.createSession(username, password, ctx);
+                t1.stop();
 
                 // Create the adapter.
+                StopWatch t2 = new Slf4JStopWatch(
+                        "Ice.Communicator.createObjectAdapterWithRouter()");
                 __oa = __ic.createObjectAdapterWithRouter("omero.ClientCallback", rtr);
                 __oa.activate();
+                t2.stop();
 
+                StopWatch t3 = new Slf4JStopWatch(
+                        "new IceIdentity()");
                 Ice.Identity id = new Ice.Identity();
                 id.name = __uuid;
                 id.category = rtr.getCategoryForClient();
+                t3.stop();
 
+                StopWatch t4 = new Slf4JStopWatch(
+                        "new CallbackI()");
                 __cb = new CallbackI(id, this.__ic, this.__oa);
                 __oa.add(__cb, id);
+                t4.stop();
                 break;
             } catch (omero.WrappedCreateSessionException wrapped) {
                 if (!wrapped.concurrency) {
@@ -770,8 +797,14 @@ public class client {
         // Set the client callback on the session
         // and pass it to icestorm
         try {
-            Ice.ObjectPrx raw = __oa.createProxy(__cb.id);
-            __sf.setCallback(ClientCallbackPrxHelper.uncheckedCast(raw));
+            StopWatch t0 = new Slf4JStopWatch(
+                    "ServiceFactoryPrx.setCallback()");
+            try {
+                Ice.ObjectPrx raw = __oa.createProxy(__cb.id);
+                __sf.setCallback(ClientCallbackPrxHelper.uncheckedCast(raw));
+            } finally {
+                t0.stop();
+            }
         } catch (RuntimeException e) {
             __del__();
             throw e;
