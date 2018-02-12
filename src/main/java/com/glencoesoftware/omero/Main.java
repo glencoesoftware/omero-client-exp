@@ -19,6 +19,7 @@
 package com.glencoesoftware.omero;
 
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.perf4j.StopWatch;
 import org.perf4j.slf4j.Slf4JStopWatch;
@@ -51,7 +52,7 @@ public class Main {
     @Arg
     private int iterations;
 
-    private Map<String, String> clientProperties;
+    private Ice.InitializationData id = new Ice.InitializationData();
 
     public static void main(String[] args) throws Exception {
         ArgumentParser parser = ArgumentParsers.newFor("omero-client-exp")
@@ -93,7 +94,8 @@ public class Main {
     public void joinSessionLoop() throws Exception {
         omero.client guestClient = new omero.client(host, port);
         try {
-            clientProperties = guestClient.getPropertyMap();
+            Map<String, String> clientProperties = guestClient.getPropertyMap();
+
             if (insecure) {
                 String defaultRouter =
                     guestClient.createSession("guest", "guest")
@@ -102,6 +104,11 @@ public class Main {
                 log.info("Set insecure router: " + defaultRouter);
                 clientProperties.put("Ice.Default.Router", defaultRouter);
             }
+
+            id.properties = Ice.Util.createProperties(new String[] {});
+            for (Entry<String, String> entry : clientProperties.entrySet()) {
+                id.properties.setProperty(entry.getKey(), entry.getValue());
+            }
         } finally {
             guestClient.closeSession();
         }
@@ -109,7 +116,7 @@ public class Main {
         for (int i = 0; i < iterations; i++) {
             StopWatch t0 = new Slf4JStopWatch("*** totalSetup ***");
             StopWatch t1 = new Slf4JStopWatch("new omero.client()");
-            omero.client client = new omero.client(clientProperties);
+            omero.client client = new omero.client(id);
             t1.stop();
             StopWatch t2 = new Slf4JStopWatch("joinSession");
             try {
