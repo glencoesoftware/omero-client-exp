@@ -52,6 +52,9 @@ public class Main {
     @Arg
     private int iterations;
 
+    @Arg
+    private Boolean reuseClient;
+
     private Ice.InitializationData id = new Ice.InitializationData();
 
     public static void main(String[] args) throws Exception {
@@ -75,6 +78,11 @@ public class Main {
             .type(Boolean.class)
             .setDefault(false)
             .help("Establish an insecure connection");
+        parser.addArgument("--reuseClient")
+            .action(Arguments.storeTrue())
+            .type(Boolean.class)
+            .setDefault(false)
+            .help("Re-use the `omero.client` object");
         parser.addArgument("--iterations")
             .type(Integer.class)
             .setDefault(10)
@@ -113,11 +121,13 @@ public class Main {
             guestClient.closeSession();
         }
 
+        omero.client client = newOmeroClient();
         for (int i = 0; i < iterations; i++) {
             StopWatch t0 = new Slf4JStopWatch("*** totalSetup ***");
-            StopWatch t1 = new Slf4JStopWatch("new omero.client()");
-            omero.client client = new omero.client(id);
-            t1.stop();
+            if (!reuseClient) {
+                client.closeSession();
+                client = newOmeroClient();
+            }
             StopWatch t2 = new Slf4JStopWatch("joinSession");
             try {
                 client.joinSession(key);
@@ -131,6 +141,15 @@ public class Main {
                     t3.stop();
                 }
             }
+        }
+    }
+
+    public omero.client newOmeroClient() {
+        StopWatch t0 = new Slf4JStopWatch("newOmeroClient");
+        try {
+            return new omero.client(id);
+        } finally {
+            t0.stop();
         }
     }
 }
