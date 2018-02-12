@@ -87,8 +87,10 @@ configurations.all {
 
 dependencies {
     compile 'ch.qos.logback:logback-classic:1.1.7'
+    compile 'net.sourceforge.argparse4j:argparse4j:0.8.1'
     compile ('omero:blitz:5.4.3-ice36-b77') {
         exclude group: 'org.testng', module: 'testng'
     }
+    compile 'org.perf4j:perf4j:0.9.16'
 }
 
