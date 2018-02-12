@@ -124,9 +124,12 @@ public class Main {
             } finally {
                 t2.stop();
                 t0.stop();
-                StopWatch t3 = new Slf4JStopWatch("closeSession");
-                client.closeSession();
-                t3.stop();
+                StopWatch t3 = new Slf4JStopWatch("*** totalTeardown ***");
+                try {
+                    client.closeSession();
+                } finally {
+                    t3.stop();
+                }
             }
         }
     }
