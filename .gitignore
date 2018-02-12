@@ -1,0 +1,12 @@
+.gradle
+.settings
+.classpath
+.project
+.eclipse
+bin
+build
+conf.json
+target
+
+.DS_Store
+*/.DS_Store
